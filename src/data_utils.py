@@ -45,15 +45,8 @@ class Visualizer:
         self.t_test = t_test
         self.y_gt_at_test = y_gt_at_test
 
-    def save_fig(self, path):
-        """Save figure as an image in a path
 
-        Args:
-            path (string): Where to save image
-        """
-        plt.savefig(path)
-
-    def plot(self, t_pred, pred_mean, pred_sigma, pred_cov, log_marg_likelihood, nb_draws=5):
+    def plot(self, t_pred, pred_mean, pred_sigma, pred_cov, log_marg_likelihood, nb_draws=5, title = None, save_path = None):
         """Generate plot to visualize GP estimates
 
         Args:
@@ -63,12 +56,17 @@ class Visualizer:
             pred_cov (2D numpy array): Covariance matrix of posterior predictive distribution
             log_marg_likelihood (float): Log of marginal likelihood
             nb_draws (int, optional): [description]. Defaults to 5.
+            title (string, optional): Title to put on plot. Defaults to None.
+            save_dir (string, optional): Path in which to save image. Defaults to None.
         """
         fig = plt.figure()
         ax = plt.gca()
         plt.xlabel('Hours since first reading')
         plt.ylabel('Tide height difference to mean (m)')
         plt.ylim([-2.5, 2.5])
+
+        if title is not None:
+            plt.title(title)
 
         # Sensor readings and groundtruth
         plt.scatter(self.t_sensor_readings, self.y_sensor_readings,
@@ -80,10 +78,10 @@ class Visualizer:
         plt.plot(t_pred, pred_mean, label='Posterior predicted mean',
                  color='red', alpha=0.8, linewidth=1)
         plt.fill_between(t_pred.squeeze(), pred_mean-pred_sigma, pred_mean +
-                         pred_sigma, label='1*sigma', alpha=0.5, color='orange')
+                         pred_sigma, label='1 $\sigma$', alpha=0.5, color='orange')
 
         plt.fill_between(t_pred.squeeze(), pred_mean-2*pred_sigma, pred_mean +
-                         2*pred_sigma, label='2*sigma', alpha=0.3, color='orange')
+                         2*pred_sigma, label='2 $\sigma$', alpha=0.3, color='orange')
 
         # Draw samples from predicted distribution
         if nb_draws > 0:
@@ -98,4 +96,8 @@ class Visualizer:
         plt.text(0.4, 0.94, 'Log marginal likelihood: '+'{0:.2f}'.format(
             log_marg_likelihood), horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
 
+
         plt.legend(loc='upper left')
+
+        if save_path is not None:
+            plt.savefig(save_path)

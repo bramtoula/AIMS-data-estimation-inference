@@ -64,16 +64,18 @@ class GaussianProcess:
         # Deflatten params in results
         for block_size in block_sizes_kernel_params:
             res_kernel_params.append(
-                res_flatten_params_and_multipliers[:block_size])
+                tuple(res_flatten_params_and_multipliers[:block_size]))
             res_flatten_params_and_multipliers = res_flatten_params_and_multipliers[block_size:]
 
         # After removing all kernel params, only the multipliers are left
-        res_multipliers = res_flatten_params_and_multipliers
+        res_multipliers = list(res_flatten_params_and_multipliers)
 
         # Update parameters of the covariance computer with optimization results
         self.covariance_computer.update_params(
             res_kernel_params, res_multipliers)
-        return res
+
+        
+        return res_kernel_params, res_multipliers
 
     def get_nll_kernel(self, kernel_and_multiplier_params, block_sizes_kernel_params, t_train, y_train):
         """Get negative marginal log likelihood of gaussian process given parameters of covariance functinon and training data. 
@@ -119,16 +121,18 @@ class GaussianProcess:
             [1D numpy array, 1D numpy array, 1D numpy array, 2D numpy array, float]: Elements returned are mean of posterior predictive destribution at testing points, variance of posterior predictive destribution at testing points, standard dev. of posterior predictive destribution at testing points, covariance of posterior predictive destribution, log marginal likelihood. 
         """
         n = len(x_input)
+        jitter = np.eye(n) * 1e-8
+
         K_train = self.covariance_computer.compute_covariance(x_input, x_input)
         K_test_train = self.covariance_computer.compute_covariance(
             x_test, x_input)
         K_test = self.covariance_computer.compute_covariance(x_test, x_test)
         L = np.linalg.cholesky(K_train+np.eye(n)*self.var_meas_noise)
-        alpha = np.linalg.pinv(L.T)@(np.linalg.pinv(L)@y_target)
+        alpha = np.linalg.pinv(L.T + jitter)@(np.linalg.pinv(L+ jitter)@y_target)
 
         pred_mean = K_test_train @ alpha
 
-        v = np.linalg.pinv(L) @ K_test_train.T
+        v = np.linalg.pinv(L+jitter) @ K_test_train.T
 
         pred_cov = K_test - v.T @ v
         log_marg_likelihood = -0.5 * y_target.T @ alpha - \
@@ -251,7 +255,7 @@ class CovarianceComputer:
                     self.kernels.append(PeriodicKernel())
             elif s == 'rat_quad':
                 # Check if kernel params are given
-                if len(kernel_params) > len(self.kernels) and len(kernel_params[len(self.kernels)]) == 2:
+                if len(kernel_params) > len(self.kernels) and len(kernel_params[len(self.kernels)]) == 3:
                     self.kernels.append(RationalQuadraticKernel(
                         kernel_params[len(self.kernels)]))
                 else:
@@ -335,6 +339,6 @@ class CovarianceComputer:
             param_to_add_id (int): ID of the parameter of the term that should be modified
             amount_to_add (float): Amount to add to selected parameter
         """
-        cur_params = self.kernels[kernel_term_id].params
+        cur_params = np.array(self.kernels[kernel_term_id].params)
         cur_params[param_to_add_id] += amount_to_add
-        self.kernels[kernel_term_id].update_params(cur_params)
+        self.kernels[kernel_term_id].update_params(tuple(cur_params))
