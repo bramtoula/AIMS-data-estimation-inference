@@ -50,12 +50,12 @@ class Visualizer:
         """Generate plot to visualize GP estimates
 
         Args:
-            t_pred (list or 1D numpy array): [description]
-            pred_mean (list or 1D numpy array): [description]
-            pred_sigma (list or 1D numpy array): [description]
+            t_pred (list or 1D numpy array): Times at which predictions are given
+            pred_mean (list or 1D numpy array): Predicted mean values of the posterior predictive distribution
+            pred_sigma (list or 1D numpy array): Predicted standard deviation values of the posterior predictive distribution
             pred_cov (2D numpy array): Covariance matrix of posterior predictive distribution
             log_marg_likelihood (float): Log of marginal likelihood
-            nb_draws (int, optional): [description]. Defaults to 5.
+            nb_draws (int, optional): Number of function draws to plot. Defaults to 5.
             title (string, optional): Title to put on plot. Defaults to None.
             save_dir (string, optional): Path in which to save image. Defaults to None.
         """
@@ -97,7 +97,7 @@ class Visualizer:
             log_marg_likelihood), horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
 
 
-        plt.legend(loc='upper left')
+        plt.legend(loc='lower left',ncol=3)
 
         if save_path is not None:
             plt.savefig(save_path)

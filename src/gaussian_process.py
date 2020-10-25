@@ -2,8 +2,6 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.optimize import minimize
 
-# TODO Check proper names of all params
-
 
 class GaussianProcess:
     """Instance of a gaussian process
@@ -74,7 +72,6 @@ class GaussianProcess:
         self.covariance_computer.update_params(
             res_kernel_params, res_multipliers)
 
-        
         return res_kernel_params, res_multipliers
 
     def get_nll_kernel(self, kernel_and_multiplier_params, block_sizes_kernel_params, t_train, y_train):
@@ -128,7 +125,8 @@ class GaussianProcess:
             x_test, x_input)
         K_test = self.covariance_computer.compute_covariance(x_test, x_test)
         L = np.linalg.cholesky(K_train+np.eye(n)*self.var_meas_noise)
-        alpha = np.linalg.pinv(L.T + jitter)@(np.linalg.pinv(L+ jitter)@y_target)
+        alpha = np.linalg.pinv(
+            L.T + jitter)@(np.linalg.pinv(L + jitter)@y_target)
 
         pred_mean = K_test_train @ alpha
 
@@ -147,7 +145,7 @@ class RBFKernel:
     def __init__(self, params=(0.1, 0.3)):
         self.params = params
         self.sigma = params[0]
-        self.length = params[1]
+        self.l = params[1]
         self.type = 'rbf'
 
     def update_params(self, params):
@@ -156,11 +154,11 @@ class RBFKernel:
                 'ERROR: Expected only 2 params to update RBF kernel params but got '+str(len(params)))
         self.params = params
         self.sigma = params[0]
-        self.length = params[1]
+        self.l = params[1]
 
     def compute_covariance(self, x1, x2):
         x_sq_dists = cdist(x1, x2, 'sqeuclidean')
-        K = self.sigma**2 * np.exp(-(x_sq_dists)/(2*self.length*self.length))
+        K = self.sigma**2 * np.exp(-(x_sq_dists)/(2*self.l*self.l))
         return K
 
 
@@ -168,7 +166,7 @@ class PeriodicKernel:
     def __init__(self, params=(0.5, 0.08)):
         self.params = params
         self.sigma = params[0]
-        self.length = params[1]
+        self.l = params[1]
         if len(params) == 3:
             self.period = params[2]
         # Default period taken from the real period of tides. Allow fo only two parameters to be given if this stays fixed.
@@ -183,14 +181,14 @@ class PeriodicKernel:
                 'ERROR: Expected only 2 or 3 params to update Periodic kernel params but got '+str(len(params)))
         self.params = params
         self.sigma = params[0]
-        self.length = params[1]
+        self.l = params[1]
         if len(params) == 3:
             self.period = params[2]
 
     def compute_covariance(self, x1, x2):
         x_dists = cdist(x1, x2, 'euclidean')
         K = self.sigma**2 * \
-            np.exp(-2/(self.length*self.length) *
+            np.exp(-2/(self.l*self.l) *
                    np.sin(np.pi*x_dists/self.period)**2)
         return K
 
@@ -200,7 +198,7 @@ class RationalQuadraticKernel:
         self.params = params
         self.sigma = params[0]
         self.alpha = params[1]
-        self.length = params[2]
+        self.l = params[2]
 
         self.type = 'rat_quad'
 
@@ -210,12 +208,12 @@ class RationalQuadraticKernel:
         self.params = params
         self.sigma = params[0]
         self.alpha = params[1]
-        self.length = params[2]
+        self.l = params[2]
 
     def compute_covariance(self, x1, x2):
         x_sq_dists = cdist(x1, x2, 'sqeuclidean')
         K = self.sigma**2 / \
-            ((1+1/(2*self.alpha)*x_sq_dists/self.length**2)**self.alpha)
+            ((1+1/(2*self.alpha)*x_sq_dists/self.l**2)**self.alpha)
         return K
 
 
